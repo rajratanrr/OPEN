@@ -1,0 +1,17 @@
+{
+  "name": "@roadsaathi/gateway",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../.env.local src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "http-proxy-middleware": "^3.0.5",
+    "mongodb": "^6.20.0",
+    "zod": "^4.1.0"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "roadsaathi-ai",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "frontend",
+    "gateway"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w frontend",
+    "build": "npm run build -w frontend",
+    "test": "npm run test -w frontend && npm run test -w gateway",
+    "gateway": "npm run dev -w gateway",
+    "e2e": "playwright test",
+    "mobile:sync": "npm run build && cd frontend && npx cap sync android"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "qrcode": "^1.5.4"
+  }
+}

@@ -1,0 +1,123 @@
+name: roadsaathi
+services:
+  postgres:
+    image: postgis/postgis:17-3.5
+    platform: linux/amd64
+    environment:
+      POSTGRES_DB: roadsaathi
+      POSTGRES_USER: roadsaathi
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Run python3 scripts/setup.py first}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U roadsaathi -d roadsaathi"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:8.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: bootstrap
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Run python3 scripts/setup.py first}
+      MONGO_INITDB_DATABASE: roadsaathi
+      MONGO_PASSWORD: ${MONGO_PASSWORD:?Run python3 scripts/setup.py first}
+    volumes:
+      - mongo-data:/data/db
+      - ./infra/mongo-init.js:/docker-entrypoint-initdb.d/app.js:ro
+    healthcheck:
+      test:
+        [
+          CMD,
+          mongosh,
+          --quiet,
+          --eval,
+          "quit(db.adminCommand({ping:1}).ok ? 0 : 1)",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    environment:
+      SERVER_ADDRESS: 0.0.0.0
+      DATABASE_URL: jdbc:postgresql://postgres:5432/roadsaathi
+      DATABASE_USERNAME: roadsaathi
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Generate a signing secret with scripts/setup.py}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      DEMO_SEED: ${DEMO_SEED:-false}
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8088}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8088}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_VISION_MODEL: ${OPENAI_VISION_MODEL:-gpt-4.1-mini}
+      MAIL_ENABLED: ${MAIL_ENABLED:-false}
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@roadsaathi.example}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_AUTH: ${MAIL_AUTH:-false}
+      MAIL_TLS: ${MAIL_TLS:-false}
+      STORAGE_PATH: /data/evidence
+      STORAGE_MODE: ${STORAGE_MODE:-local}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-roadsaathi}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+    volumes: [evidence-data:/data/evidence]
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, curl, -fsS, http://localhost:8080/actuator/health/readiness]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
+    restart: unless-stopped
+
+  gateway:
+    build: { context: ., dockerfile: gateway/Dockerfile }
+    environment:
+      BACKEND_URL: http://backend:8080
+      GATEWAY_HOST: 0.0.0.0
+      GATEWAY_PORT: 3000
+      MONGODB_URI: mongodb://roadsaathi:${MONGO_PASSWORD}@mongo:27017/roadsaathi?authSource=roadsaathi
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8088}
+    depends_on:
+      backend: { condition: service_healthy }
+      mongo: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          'fetch("http://127.0.0.1:3000/health").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))',
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  frontend:
+    build: { context: ., dockerfile: frontend/Dockerfile }
+    ports: ["127.0.0.1:${WEB_PORT:-8088}:8080"]
+    depends_on:
+      gateway: { condition: service_healthy }
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ["127.0.0.1:8025:8025"]
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  mongo-data:
+  evidence-data:

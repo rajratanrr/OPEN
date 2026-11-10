@@ -1,0 +1,5 @@
+roadsaathi:
+  cookie-secure: false
+logging:
+  level:
+    org.hibernate: WARN

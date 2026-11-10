@@ -1,0 +1,8 @@
+{
+  "applicationId": "in.roadsaathi.app",
+  "version": "1.0",
+  "server": "http://10.227.18.22:5173",
+  "buildType": "debug",
+  "sha256": "0bc0550f156a9f4d7728fdb4ee9635af7add2369f48a6b223bf33d96a60e0f78",
+  "bytes": 5433366
+}

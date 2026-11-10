@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Local Wi-Fi test builds only. Release builds do not allow HTTP. -->
+    <application android:usesCleartextTraffic="true" />
+</manifest>
