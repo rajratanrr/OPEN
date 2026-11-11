@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/:page(login|register|forgot-password|reset-password|privacy|terms|about|map|dashboard|report|my-reports|monitor|rewards|notifications|settings|municipal|analytics|admin)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/reports/:id",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/municipal/reports",
+      "destination": "/index.html"
+    }
+  ]
+}
